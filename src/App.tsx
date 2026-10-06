@@ -77,8 +77,8 @@ function FamilyBranch({member,members,query,onSelect,root=false,ancestors=[]}:{m
    const cards=Array.from(container.querySelectorAll<HTMLElement>(':scope > .family-branch > .member-card'))
    const points=cards.map(card=>{const rect=card.getBoundingClientRect();return{x:rect.left+rect.width/2-bounds.left,y:rect.top-bounds.top}})
    if(!points.length)return
-   const busY=0
-   const path=`M ${points[0].x} ${busY} H ${points[points.length-1].x} ${points.slice().map(point=>`M ${point.x} ${busY} V ${point.y}`).join(' ')}`
+   const busY=12
+   const path=`M ${points[0].x} ${busY} H ${points[points.length-1].x} ${points.map(point=>`M ${point.x} ${busY} V ${point.y}`).join(' ')}`
    setConnectors({width:bounds.width,height:Math.max(32,...points.map(point=>point.y+2)),path})
   }
   update()

@@ -8,3 +8,4 @@
 @media(max-width:600px){.family-tree-root{justify-content:flex-start;padding-left:4px;padding-right:4px}.family-children{gap:10px}.unlinked-group{min-width:0}.unlinked-members{justify-content:flex-start}}
 .family-children{gap:18px;padding-top:24px}.family-children:before{display:none}.family-children:after{top:-24px;z-index:0}.family-connectors{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:0}.family-connectors path{fill:none;stroke:#c9cabb;stroke-width:1;vector-effect:non-scaling-stroke}.family-children>.family-branch{z-index:1}.family-children>.family-branch:before{display:none}.family-children>.family-branch>.member-card{margin-top:0}
 @media(max-width:600px){.family-children{gap:10px}}
+.family-children:after{top:0;height:12px}
