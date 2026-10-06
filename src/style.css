@@ -10,3 +10,5 @@
 @media(max-width:600px){.family-children{gap:10px}}
 .family-children:after{top:0;height:12px}
 .parent-edit-field{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;color:#788076;font-size:11px}.parent-edit-field select{width:100%;border:1px solid #e4e1d7;background:#fffefa;border-radius:4px;padding:12px;font:13px 'DM Sans';color:#3d4f3d}
+.tree-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:-18px 0 12px;color:#7f877a;font-size:11px}.tree-toolbar>div{display:flex;align-items:center;gap:5px}.tree-toolbar button{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 9px;border:1px solid #e4e1d7;border-radius:4px;background:#fffefa;color:#405340;font:600 11px 'DM Sans';cursor:pointer}.tree-toolbar button:hover{background:#eef0e8}.family-tree-viewport{display:block;max-height:min(72vh,760px);min-height:320px;overflow:auto;overscroll-behavior:contain}.family-tree-zoom-content{width:max-content;min-width:100%;padding:4px 0 10px}
+@media(max-width:600px){.tree-toolbar{margin-top:-10px;margin-bottom:12px}.family-tree-viewport{max-height:68vh;min-height:280px}}
