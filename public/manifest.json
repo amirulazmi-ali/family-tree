@@ -1,0 +1,8 @@
+{
+  "name": "Family Tree V0.1",
+  "short_name": "Salasilah",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f7f3",
+  "theme_color": "#355941"
+}
