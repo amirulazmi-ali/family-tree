@@ -17,12 +17,14 @@ create table if not exists public.family_members (
   birthplace text,
   bio text,
   gender text,
+  child_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
 -- Upgrade the original V0.1 table in place if it already exists.
 alter table public.family_members add column if not exists family_id uuid references public.families(id) on delete cascade;
 alter table public.family_members add column if not exists user_id uuid unique references auth.users(id) on delete set null;
+alter table public.family_members add column if not exists child_order integer not null default 0;
 insert into public.families (id, name) values ('10000000-0000-4000-8000-000000000001','Keluarga Mat Isa') on conflict (id) do nothing;
 update public.family_members set family_id='10000000-0000-4000-8000-000000000001' where family_id is null;
 alter table public.family_members alter column family_id set not null;
@@ -92,7 +94,7 @@ create policy admins_self_read on public.family_admins for select to authenticat
 
 grant select on public.families, public.family_members, public.family_relationships to anon, authenticated;
 grant select on public.family_admins to authenticated;
-grant update (full_name,birth_year,death_year,birthplace,bio,gender) on public.family_members to authenticated;
+grant update (full_name,birth_year,death_year,birthplace,bio,gender,child_order) on public.family_members to authenticated;
 grant insert, update, delete on public.families, public.family_members, public.family_relationships to authenticated;
 
 insert into public.family_members (id,family_id,full_name,gender,bio)
