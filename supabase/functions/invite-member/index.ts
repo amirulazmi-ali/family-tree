@@ -59,6 +59,7 @@ Deno.serve(async (req)=>{
         .is('user_id',null)
 
       if(linkError){
+        await admin.auth.admin.deleteUser(generated.user.id)
         return Response.json({error:`Gagal memautkan akaun jemputan: ${linkError.message}`},{status:500,headers:cors})
       }
 
@@ -91,7 +92,9 @@ Deno.serve(async (req)=>{
 
       if(!brevoResponse.ok){
         const detail=await brevoResponse.text()
-        return Response.json({error:`Pautan berjaya dijana tetapi email gagal dihantar melalui Brevo: ${detail.slice(0,500)}`},{status:502,headers:cors})
+        await admin.from('family_members').update({user_id:null}).eq('id',member.id).eq('user_id',generated.user.id)
+        await admin.auth.admin.deleteUser(generated.user.id)
+        return Response.json({error:`Email gagal dihantar melalui Brevo: ${detail.slice(0,500)}`},{status:502,headers:cors})
       }
 
       return Response.json({ok:true,provider:'brevo'},{headers:cors})
