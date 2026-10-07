@@ -200,7 +200,46 @@ function App(){
   else setMembers(current=>[...current,{...created,parent_id:null,twin_ids:twinIds,child_order:0}])
   form.reset();setNewMemberParent('');setNewMemberTwin('');setNewChildOrder('1');setNotice('Ahli keluarga berjaya ditambah mengikut susunan anak yang dipilih.');setBusy(false)
  }
- async function invite(e:FormEvent){e.preventDefault();if(!supabase)return;setBusy(true);setNotice('');const {data:{session}}=await supabase.auth.getSession();const response=await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-member`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`,'apikey':import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({member_id:inviteMember,email:inviteEmail})});const result=await response.json();setNotice(response.ok?'Jemputan dihantar melalui e-mel.':(result.error??'Jemputan gagal.'));setBusy(false)}
+ async function invite(e:FormEvent){
+  e.preventDefault()
+  if(!supabase){
+   setNotice('Supabase belum dikonfigurasi.')
+   return
+  }
+  setBusy(true)
+  setNotice('Menghantar jemputan…')
+  try{
+   const {data:{session},error:sessionError}=await supabase.auth.getSession()
+   if(sessionError||!session?.access_token){
+    setNotice('❌ Sesi log masuk tidak sah. Sila log masuk semula.')
+    return
+   }
+   const functionUrl=`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-member`
+   const response=await fetch(functionUrl,{
+    method:'POST',
+    headers:{
+     'Content-Type':'application/json',
+     'Authorization':`Bearer ${session.access_token}`,
+     'apikey':import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    },
+    body:JSON.stringify({member_id:inviteMember,email:inviteEmail})
+   })
+   const raw=await response.text()
+   let result:any={}
+   try{result=raw?JSON.parse(raw):{}}catch{result={error:raw}}
+   if(response.ok){
+    setNotice('✅ Jemputan berjaya dihantar melalui e-mel.')
+    setInviteEmail('')
+    setInviteMember('')
+   }else{
+    setNotice(`❌ Jemputan gagal (${response.status}): ${result.error??'Ralat tidak diketahui.'}`)
+   }
+  }catch(error){
+   setNotice(`❌ Tidak dapat menghubungi server jemputan: ${error instanceof Error?error.message:String(error)}`)
+  }finally{
+   setBusy(false)
+  }
+ }
  return <main className={`page-shell${isTreePage?' tree-page-shell':''}`}>
  <header className="topbar"><a className="brand" href="/"><span className="brand-mark"><Leaf size={19}/></span><span>Salasilah<span className="brand-light">Keluarga</span></span></a><nav>{isTreePage?<a href="/">Halaman utama</a>:<><a href="/salasilah" className="active">Salasilah</a><a href="#tentang">Tentang</a></>}</nav><button className="top-action" onClick={()=>user?void supabase?.auth.signOut():setAuthOpen(true)}>{user?<><LogOut size={16}/> Log keluar</>:<><LogIn size={16}/> Log masuk</>}</button>{isTreePage?<a className="top-action tree-back-link" href="/">Kembali <ArrowDown size={15}/></a>:<button className="top-action" onClick={()=>root&&setSelected(root)}>Lihat pangkal keluarga <ArrowDown size={15}/></button>}</header>
  {!isTreePage&&<><section className="hero" id="top"><div className="hero-copy"><div className="eyebrow"><span/> CERITA KELUARGA KITA</div><h1>Setiap nama,<br/><em>ada ceritanya.</em></h1><p>Jejak asal usul keluarga, kenali ikatan yang menghubungkan kita, dan simpan cerita untuk generasi seterusnya.</p><button className="primary-button" onClick={()=>user&&canViewTree?window.location.assign("/salasilah"):setAuthOpen(true)}>{user&&canViewTree?"Teroka salasilah":"Log masuk untuk lihat salasilah"} <ArrowDown size={16}/></button><div className="hero-note"><span className="note-avatars">{homepagePeople.slice(0,3).map(member=><i key={member.id}>{initials(member.full_name).slice(0,1)}</i>)}</span><span>Salasilah keluarga <b>{root?.full_name??"keluarga kita"}</b></span></div></div><LiveMiniTree root={canViewTree?root:null} members={canViewTree?members:[]} onSelect={setSelected}/></section><section className="stats"><div><Users size={19}/><span><strong>{members.length}</strong> ahli keluarga</span></div><div><Leaf size={19}/><span><strong>{canViewTree?generationCount:"—"}</strong> generasi direkodkan</span></div><div className="stats-note">Dibina daripada ingatan, dikekalkan bersama.</div></section></>}
