@@ -38,7 +38,7 @@ create table if not exists public.family_relationships (
   family_id uuid not null references public.families(id) on delete cascade,
   member_id uuid not null references public.family_members(id) on delete cascade,
   related_member_id uuid not null references public.family_members(id) on delete cascade,
-  relationship_type text not null check (relationship_type in ('parent','spouse')),
+  relationship_type text not null check (relationship_type in ('parent','spouse','twin')),
   created_at timestamptz not null default now(),
   check (member_id <> related_member_id),
   unique (member_id, related_member_id, relationship_type)
@@ -258,3 +258,23 @@ before insert or update of family_id, member_id, related_member_id, relationship
 on public.family_relationships
 for each row
 execute function public.prevent_parent_cycle();
+
+
+-- V0.3-B: explicit twin / multiple-birth support.
+-- Store one canonical twin edge (lower UUID first). The UI treats it as
+-- symmetric and can traverse connected twin edges for triplets/quadruplets.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_relationships_twin_canonical_check'
+      and conrelid = 'public.family_relationships'::regclass
+  ) then
+    alter table public.family_relationships
+      add constraint family_relationships_twin_canonical_check
+      check (relationship_type <> 'twin' or member_id < related_member_id);
+  end if;
+end $$;
+
+create index if not exists family_relationships_twin_idx
+  on public.family_relationships (family_id, relationship_type, member_id, related_member_id);
