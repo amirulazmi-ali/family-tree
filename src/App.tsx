@@ -168,6 +168,7 @@ function FamilyBranch({member,members,query,zoom,onSelect,root=false,ancestors=[
  const childrenRef=useRef<HTMLDivElement>(null)
  const [connectors,setConnectors]=useState<{width:number;height:number;path:string}|null>(null)
  const children=sortChildren(members.filter(child=>child.parent_id===member.id&&!ancestors.includes(child.id)&&branchMatches(child,members,query)))
+ const childOrderKey=children.map(child=>`${child.id}:${child.child_order}`).join('|')
  useLayoutEffect(()=>{
   const container=childrenRef.current
   if(!container||children.length===0)return
@@ -186,7 +187,7 @@ function FamilyBranch({member,members,query,zoom,onSelect,root=false,ancestors=[
   container.querySelectorAll(':scope > .family-branch > .member-card').forEach(card=>observer.observe(card))
  window.addEventListener('resize',update)
   return()=>{observer.disconnect();window.removeEventListener('resize',update)}
- },[children.length,depth,query,zoom])
+ },[childOrderKey,depth,query,zoom])
  if(ancestors.includes(member.id)||!branchMatches(member,members,query))return null
  return <div className={`family-branch${root?' root-branch':''}`}><MemberCard member={member} root={root} onClick={()=>onSelect(member)}/>{children.length>0&&<div className={`family-children${depth===3?' vertical-children':''}`} ref={childrenRef}>{connectors&&<svg className="family-connectors" width={connectors.width} height={connectors.height} viewBox={`0 0 ${connectors.width} ${connectors.height}`} aria-hidden="true"><path d={connectors.path}/></svg>}{children.map(child=><FamilyBranch key={child.id} member={child} members={members} query={query} zoom={zoom} depth={depth+1} onSelect={onSelect} ancestors={[...ancestors,member.id]}/>)}</div>}</div>
 }
