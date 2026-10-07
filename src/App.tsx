@@ -177,7 +177,7 @@ function App(){
    const {error:relationshipError}=await client.from('family_relationships').insert({family_id:familyId,member_id:created.id,related_member_id:parentId,relationship_type:'parent'})
    if(relationshipError){await client.from('family_members').delete().eq('id',created.id);setNotice(`Ahli tidak ditambah kerana hubungan ibu/bapa gagal disimpan: ${relationshipError.message}`);setBusy(false);return}
    const reordered=[...siblings]
-   reordered.splice(childOrder-1,0,{...created,parent_id:parentId,child_order:childOrder})
+   reordered.splice(childOrder-1,0,{...created,parent_id:parentId,twin_ids:[],child_order:childOrder})
    const changes=reordered.filter(member=>member.id!==created.id).map((member,index)=>({id:member.id,previous:member.child_order,next:index+1})).filter(change=>change.previous!==change.next)
    const results=await Promise.all(changes.map(change=>client.from('family_members').update({child_order:change.next}).eq('family_id',familyId).eq('id',change.id)))
    const failed=results.findIndex(result=>result.error)
