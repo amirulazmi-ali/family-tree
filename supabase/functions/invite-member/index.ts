@@ -27,7 +27,7 @@ Deno.serve(async (req)=>{
     const {data:invite,error}=await admin.auth.admin.inviteUserByEmail(email,{...(redirectTo?{redirectTo}:{}),data:{family_member_id:member.id}})
     if(error||!invite.user) return Response.json({error:error?.message??'Invite failed'},{status:400,headers:cors})
     const {error:linkError}=await admin.from('family_members').update({user_id:invite.user.id}).eq('id',member.id).is('user_id',null)
-    if(linkError){await admin.auth.admin.deleteUser(invite.user.id);return Response.json({error:'Could not link invited account'},{status:500,headers:cors})}
+    if(linkError){return Response.json({error:`Gagal memautkan akaun jemputan: ${linkError.message}`},{status:500,headers:cors})}
     return Response.json({ok:true},{headers:cors})
   } catch { return Response.json({error:'Invalid request'},{status:400,headers:cors}) }
 })
