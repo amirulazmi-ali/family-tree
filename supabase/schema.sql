@@ -114,3 +114,147 @@ values
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000001','parent'),
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000001','parent')
 on conflict do nothing;
+
+
+-- V0.3-A relationship integrity.
+-- Keep this block aligned with supabase/migrations/20261007_relationship_integrity.sql.
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_members_family_id_id_key'
+      and conrelid = 'public.family_members'::regclass
+  ) then
+    alter table public.family_members
+      add constraint family_members_family_id_id_key unique (family_id, id);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_relationships_member_same_family_fk'
+      and conrelid = 'public.family_relationships'::regclass
+  ) then
+    alter table public.family_relationships
+      add constraint family_relationships_member_same_family_fk
+      foreign key (family_id, member_id)
+      references public.family_members (family_id, id)
+      on delete cascade;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_relationships_related_same_family_fk'
+      and conrelid = 'public.family_relationships'::regclass
+  ) then
+    alter table public.family_relationships
+      add constraint family_relationships_related_same_family_fk
+      foreign key (family_id, related_member_id)
+      references public.family_members (family_id, id)
+      on delete cascade;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_members_birth_year_check'
+      and conrelid = 'public.family_members'::regclass
+  ) then
+    alter table public.family_members
+      add constraint family_members_birth_year_check
+      check (birth_year is null or birth_year between 0 and 2100);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_members_death_year_check'
+      and conrelid = 'public.family_members'::regclass
+  ) then
+    alter table public.family_members
+      add constraint family_members_death_year_check
+      check (death_year is null or death_year between 0 and 2100);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_members_year_order_check'
+      and conrelid = 'public.family_members'::regclass
+  ) then
+    alter table public.family_members
+      add constraint family_members_year_order_check
+      check (birth_year is null or death_year is null or death_year >= birth_year);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_members_child_order_check'
+      and conrelid = 'public.family_members'::regclass
+  ) then
+    alter table public.family_members
+      add constraint family_members_child_order_check
+      check (child_order >= 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'family_members_gender_check'
+      and conrelid = 'public.family_members'::regclass
+  ) then
+    alter table public.family_members
+      add constraint family_members_gender_check
+      check (gender is null or gender in ('Lelaki', 'Perempuan', 'Tidak diketahui'));
+  end if;
+end $$;
+
+create index if not exists family_relationships_member_idx
+  on public.family_relationships (family_id, member_id, relationship_type);
+
+create index if not exists family_relationships_related_idx
+  on public.family_relationships (family_id, related_member_id, relationship_type);
+
+create or replace function public.prevent_parent_cycle()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.relationship_type <> 'parent' then
+    return new;
+  end if;
+
+  if exists (
+    with recursive ancestors(member_id) as (
+      select new.related_member_id
+      union
+      select r.related_member_id
+      from public.family_relationships r
+      join ancestors a on a.member_id = r.member_id
+      where r.family_id = new.family_id
+        and r.relationship_type = 'parent'
+        and r.id <> new.id
+    )
+    select 1
+    from ancestors
+    where member_id = new.member_id
+  ) then
+    raise exception 'Parent relationship would create a family-tree cycle';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_parent_cycle() from public;
+
+drop trigger if exists prevent_parent_cycle on public.family_relationships;
+create trigger prevent_parent_cycle
+before insert or update of family_id, member_id, related_member_id, relationship_type
+on public.family_relationships
+for each row
+execute function public.prevent_parent_cycle();
