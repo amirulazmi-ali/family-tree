@@ -70,7 +70,12 @@ function App(){
   const parentId=admin&&parentField?(String(form.get('parent_id')||'')||null):selected.parent_id
   const twinOf=admin?(String(form.get('twin_of')||'')||null):(selected.twin_ids[0]??null)
   const patch={full_name:String(form.get('full_name')),nickname:String(form.get('nickname')).trim()||null,birth_year:Number(form.get('birth_year'))||null,death_year:Number(form.get('death_year'))||null,birthplace:String(form.get('birthplace'))||null,bio:String(form.get('bio'))||null,gender:String(form.get('gender'))||null,is_deceased:deceasedField?form.get('is_deceased')==='on'||Number(form.get('death_year'))>0:selected.is_deceased}
-  let insertedParent=false,deletedParent=false,insertedTwin=false,deletedTwin=false
+  const oldTwinIds=[...selected.twin_ids]
+  let insertedParent=false
+  let deletedParent=false
+  let insertedTwin=false
+  let deletedTwins=false
+
   if(admin&&parentId!==selected.parent_id){
    if(parentId){
     if(prohibitedParentIds.has(parentId)){setNotice('Ibu/bapa tidak boleh menjadi keturunan ahli ini.');setBusy(false);return}
@@ -80,25 +85,50 @@ function App(){
    }
    if(selected.parent_id){
     const {error}=await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',selected.id).eq('related_member_id',selected.parent_id).eq('relationship_type','parent')
-    if(error){if(insertedParent&&parentId)await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',selected.id).eq('related_member_id',parentId).eq('relationship_type','parent')
-   if(insertedTwin&&twinOf){const [a,b]=[selected.id,twinOf].sort();await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',a).eq('related_member_id',b).eq('relationship_type','twin')}
-   if(deletedTwin&&selected.twin_ids[0]){const [a,b]=[selected.id,selected.twin_ids[0]].sort();await supabase.from('family_relationships').insert({family_id:familyId,member_id:a,related_member_id:b,relationship_type:'twin'})};setNotice(`Ibu/bapa lama tidak dapat diganti: ${error.message}`);setBusy(false);return}
+    if(error){
+     if(insertedParent&&parentId)await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',selected.id).eq('related_member_id',parentId).eq('relationship_type','parent')
+     setNotice(`Ibu/bapa lama tidak dapat diganti: ${error.message}`);setBusy(false);return
+    }
     deletedParent=true
    }
   }
-  if(admin&&twinOf!== (selected.twin_ids[0]??null)){
-   if(twinOf){const [a,b]=[selected.id,twinOf].sort();const {error}=await supabase.from('family_relationships').insert({family_id:familyId,member_id:a,related_member_id:b,relationship_type:'twin'});if(error){setNotice(`Hubungan kembar tidak dapat disimpan: ${error.message}`);setBusy(false);return}insertedTwin=true}
-   if(selected.twin_ids[0]){const [a,b]=[selected.id,selected.twin_ids[0]].sort();const {error}=await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',a).eq('related_member_id',b).eq('relationship_type','twin');if(error){if(insertedTwin&&twinOf){const [x,y]=[selected.id,twinOf].sort();await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',x).eq('related_member_id',y).eq('relationship_type','twin')}setNotice(`Hubungan kembar lama tidak dapat dibuang: ${error.message}`);setBusy(false);return}deletedTwin=true}
+
+  if(admin&&twinOf!==(selected.twin_ids[0]??null)){
+   if(twinOf){
+    const [a,b]=[selected.id,twinOf].sort()
+    const {error}=await supabase.from('family_relationships').insert({family_id:familyId,member_id:a,related_member_id:b,relationship_type:'twin'})
+    if(error){
+     if(insertedParent&&parentId)await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',selected.id).eq('related_member_id',parentId).eq('relationship_type','parent')
+     if(deletedParent&&selected.parent_id)await supabase.from('family_relationships').insert({family_id:familyId,member_id:selected.id,related_member_id:selected.parent_id,relationship_type:'parent'})
+     setNotice(`Hubungan kembar tidak dapat disimpan: ${error.message}`);setBusy(false);return
+    }
+    insertedTwin=true
+   }
+   for(const oldTwinId of oldTwinIds){
+    const [a,b]=[selected.id,oldTwinId].sort()
+    const {error}=await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',a).eq('related_member_id',b).eq('relationship_type','twin')
+    if(error){
+     if(insertedTwin&&twinOf){const [x,y]=[selected.id,twinOf].sort();await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',x).eq('related_member_id',y).eq('relationship_type','twin')}
+     for(const restoreId of oldTwinIds){const [x,y]=[selected.id,restoreId].sort();await supabase.from('family_relationships').insert({family_id:familyId,member_id:x,related_member_id:y,relationship_type:'twin'})}
+     if(insertedParent&&parentId)await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',selected.id).eq('related_member_id',parentId).eq('relationship_type','parent')
+     if(deletedParent&&selected.parent_id)await supabase.from('family_relationships').insert({family_id:familyId,member_id:selected.id,related_member_id:selected.parent_id,relationship_type:'parent'})
+     setNotice(`Hubungan kembar lama tidak dapat dikemas kini: ${error.message}`);setBusy(false);return
+    }
+    deletedTwins=true
+   }
   }
+
   const {error}=await supabase.from('family_members').update(patch).eq('id',selected.id)
   if(error){
    if(insertedParent&&parentId)await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',selected.id).eq('related_member_id',parentId).eq('relationship_type','parent')
    if(deletedParent&&selected.parent_id)await supabase.from('family_relationships').insert({family_id:familyId,member_id:selected.id,related_member_id:selected.parent_id,relationship_type:'parent'})
+   if(insertedTwin&&twinOf){const [a,b]=[selected.id,twinOf].sort();await supabase.from('family_relationships').delete().eq('family_id',familyId).eq('member_id',a).eq('related_member_id',b).eq('relationship_type','twin')}
+   if(deletedTwins)for(const oldTwinId of oldTwinIds){const [a,b]=[selected.id,oldTwinId].sort();await supabase.from('family_relationships').insert({family_id:familyId,member_id:a,related_member_id:b,relationship_type:'twin'})}
    setNotice(error.message)
   }else{
-   const nextTwinIds=twinOf?[twinOf]:[];const updated={...selected,...patch,parent_id:parentId,twin_ids:nextTwinIds}
+   const updated={...selected,...patch,parent_id:parentId,twin_ids:twinOf?[twinOf]:[]}
    setMembers(ms=>ms.map(m=>m.id===selected.id?updated:m));setSelected(updated);setEdit(false)
-   setNotice(admin&&parentId!==selected.parent_id?'Profil dan hubungan ibu/bapa berjaya dikemas kini.':'Profil berjaya dikemas kini.')
+   setNotice(admin&&(parentId!==selected.parent_id||twinOf!==(selected.twin_ids[0]??null))?'Profil dan hubungan berjaya dikemas kini.':'Profil berjaya dikemas kini.')
   }
   setBusy(false)
  }
