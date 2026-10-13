@@ -87,3 +87,27 @@
  .tree-page-section .tree-foot{padding-bottom:8px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.member-card{transition:none}}
+
+/* Keep the complete edit-profile form reachable on small screens */
+.profile-modal.is-editing{display:flex;flex-direction:column;text-align:left}
+.profile-modal.is-editing>.profile-avatar{flex:0 0 auto;margin:0 auto 12px}
+.profile-modal.is-editing>.eyebrow{justify-content:center;flex:0 0 auto;margin-bottom:12px}
+.profile-modal.is-editing .auth-form{min-height:0}
+.profile-modal.is-editing .auth-form input,.profile-modal.is-editing .auth-form textarea,.profile-modal.is-editing .auth-form select{min-width:0;font-size:16px}
+.profile-modal.is-editing .auth-form textarea{min-height:76px}
+.profile-modal.is-editing .auth-form button.primary-button{position:sticky;bottom:0;z-index:2;width:100%;min-height:46px;box-shadow:0 -8px 14px #faf9f4}
+@media(max-width:600px){
+ .modal-backdrop{display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;overscroll-behavior:contain;padding:calc(env(safe-area-inset-top, 0px) + 8px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px)}
+ .profile-modal{width:100%;max-width:460px;max-height:calc(100vh - 18px);max-height:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 18px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;min-height:0}
+ .profile-modal.is-editing{padding:18px 16px calc(12px + env(safe-area-inset-bottom, 0px))}
+ .profile-modal.is-editing>.profile-avatar{width:44px;height:44px;font-size:16px;margin-bottom:8px}
+ .profile-modal.is-editing>.eyebrow{font-size:9px;margin-bottom:10px}
+ .profile-modal.is-editing .auth-form{gap:9px;margin-top:4px}
+ .profile-modal.is-editing .auth-form input,.profile-modal.is-editing .auth-form select,.profile-modal.is-editing .auth-form textarea{padding:11px 12px}
+ .profile-modal.is-editing .auth-form button.primary-button{margin-top:2px}
+ .profile-modal .close-button{position:sticky;top:0;align-self:flex-end;z-index:4;width:34px;height:34px;margin:-8px -7px 0 0;display:grid;place-items:center;background:#faf9f4ef;border-radius:50%}
+}
+@media(max-width:380px){
+ .profile-modal.is-editing{padding-left:12px;padding-right:12px}
+ .profile-modal.is-editing .auth-form{gap:8px}
+}
