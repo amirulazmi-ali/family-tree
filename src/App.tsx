@@ -52,7 +52,7 @@ function App(){
  const selectedSiblings=selected?.parent_id?sortChildren(members.filter(m=>m.parent_id===selected.parent_id)):[]
  const selectedChildOrder=selected?.parent_id?Math.max(1,selectedSiblings.findIndex(m=>m.id===selected.id)+1):1
  function fitTree(){const viewport=treeViewportRef.current,content=treeContentRef.current;if(!viewport||!content)return;const minZoom=window.matchMedia('(max-width: 600px)').matches?.62:.45;setTreeZoom(Math.max(minZoom,Math.min(1,(viewport.clientWidth-32)/content.offsetWidth)));viewport.scrollLeft=0;viewport.scrollTop=0}
- useLayoutEffect(()=>{if(loading||!members.length)return;const frame=requestAnimationFrame(fitTree);return()=>cancelAnimationFrame(frame)},[loading,members.length])
+ useLayoutEffect(()=>{if(loading||!members.length||treeView!=='full')return;const frame=requestAnimationFrame(fitTree);return()=>cancelAnimationFrame(frame)},[loading,members.length,treeView])
  const root=members.find(m=>m.full_name==='Mat Isa')??members[0]??null
  const focusMember=members.find(m=>m.id===mobileFocusId)??myProfile??root
  const focusParent=focusMember?.parent_id?members.find(m=>m.id===focusMember.parent_id)??null:null
